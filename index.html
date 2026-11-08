@@ -1,143 +1,171 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#10101c">
-<title>Загадка древнего храма</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#10131b">
+<title>Головоломка — Тайна древнего храма</title>
 <style>
-:root{--bg:#10101c;--panel:rgba(16,18,31,.88);--gold:#e7bd70;--text:#f4f0e8}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);touch-action:none}
-canvas{display:block;width:100%;height:100%}
-#menu,#hud,#message,#puzzle,#win{position:fixed;z-index:5}
-#menu,#win{inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;background:radial-gradient(ellipse at center,rgba(49,43,65,.88),rgba(8,10,18,.97))}
-.card{width:min(440px,100%);padding:28px 22px;border:1px solid rgba(231,189,112,.42);border-radius:22px;background:rgba(12,14,25,.9);box-shadow:0 18px 70px #0009}
-h1{font-size:clamp(28px,8vw,44px);line-height:1.05;margin:0 0 12px;color:var(--gold);letter-spacing:.03em}
-.sub{color:#c6c0b7;line-height:1.5;margin:0 0 22px}
-button{border:0;border-radius:13px;padding:13px 18px;font-size:16px;font-weight:700;background:var(--gold);color:#201a12;cursor:pointer}
-button.secondary{background:#34354b;color:#fff;border:1px solid #69647b}
-#menu button{width:100%;margin-top:9px}
-#hud{inset:env(safe-area-inset-top) 12px auto 12px;display:none;justify-content:space-between;align-items:flex-start;pointer-events:none}
-.pill{background:var(--panel);border:1px solid #ffffff25;border-radius:12px;padding:9px 12px;font-size:13px;backdrop-filter:blur(8px)}
-#hint{max-width:68%;line-height:1.35}
-#message{left:50%;bottom:calc(120px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:90%;padding:11px 15px;border-radius:12px;background:var(--panel);border:1px solid #ffffff30;text-align:center;display:none}
-#controls{position:fixed;z-index:4;inset:auto 0 calc(12px + env(safe-area-inset-bottom));display:none;justify-content:space-between;align-items:end;padding:0 16px;pointer-events:none}
-#stick{width:116px;height:116px;border-radius:50%;background:#ffffff16;border:2px solid #ffffff55;position:relative;pointer-events:auto;touch-action:none}
-#knob{position:absolute;width:48px;height:48px;border-radius:50%;left:32px;top:32px;background:#e7bd70bb;border:2px solid #fff9}
-#actions{display:flex;flex-direction:column;gap:9px;align-items:end;pointer-events:auto}
-#actions button{min-width:112px;padding:12px 14px;background:#22263bdc;color:#fff;border:1px solid #e7bd70aa;backdrop-filter:blur(8px)}
-#actions button:active{background:#80633b}
-#puzzle{inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:#080a12cc}
-#puzzle .card{max-width:360px}
-#code{width:100%;font-size:30px;text-align:center;letter-spacing:.3em;margin:14px 0;padding:12px;border-radius:10px;border:1px solid #aaa;background:#f5f1e9;color:#17151a}
-#win{display:none}
-.small{font-size:12px;color:#aaa;margin-top:14px}
-@media(min-width:800px){#controls{max-width:850px;left:50%;transform:translateX(-50%)}}
+:root{--gold:#e8bd70;--glass:rgba(12,16,25,.82);--line:rgba(232,189,112,.35)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090c12;color:#f4eee2;font-family:Arial,sans-serif;touch-action:none}
+#game{position:fixed;inset:0}canvas{display:block}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.55) 100%);z-index:2}
+#hud{position:fixed;inset:0;z-index:4;pointer-events:none}
+.top{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.pill{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:10px 13px;backdrop-filter:blur(8px);font-size:13px;box-shadow:0 5px 22px #0006}
+.pill b{color:var(--gold);font-weight:700}
+#objective{position:absolute;top:66px;left:50%;transform:translateX(-50%);width:min(88%,420px);text-align:center;line-height:1.4}
+#hint{position:absolute;top:calc(50% + 38px);left:50%;transform:translateX(-50%);background:#111a;border:1px solid var(--line);padding:8px 12px;border-radius:12px;font-size:12px;opacity:0;transition:opacity .2s;white-space:nowrap}
+#crosshair{position:absolute;left:50%;top:50%;width:8px;height:8px;border:1px solid #f4dfb0;border-radius:50%;transform:translate(-50%,-50%);opacity:.8}
+#controls{position:fixed;inset:0;z-index:5;pointer-events:none}
+#stickArea{position:absolute;left:18px;bottom:22px;width:132px;height:132px;border-radius:50%;background:#ffffff12;border:1px solid #ffffff30;pointer-events:auto;touch-action:none}
+#stick{position:absolute;left:50%;top:50%;width:54px;height:54px;transform:translate(-50%,-50%);border-radius:50%;background:#e8bd7070;border:2px solid #f5d59c;box-shadow:0 3px 15px #0008}
+#lookArea{position:absolute;right:0;top:20%;width:55%;height:65%;pointer-events:auto;touch-action:none}
+#actions{position:absolute;right:18px;bottom:24px;display:flex;flex-direction:column;gap:10px;pointer-events:auto}
+.action{width:62px;height:62px;border-radius:50%;border:1px solid var(--line);background:#121925dd;color:#f7e5c2;font-size:11px;font-weight:bold;box-shadow:0 5px 18px #0008}
+.action:active{background:#8c6939}
+#panel{position:fixed;z-index:10;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#080b12d9,#080b12f2);padding:20px}
+.window{width:min(92vw,480px);max-height:90vh;overflow:auto;background:linear-gradient(145deg,#202631,#10151e);border:1px solid var(--line);border-radius:22px;padding:26px 22px;text-align:center;box-shadow:0 20px 70px #000b}
+.logo{font-size:12px;letter-spacing:4px;color:var(--gold);margin-bottom:12px}
+h1{font-size:clamp(27px,7vw,42px);margin:8px 0 12px;color:#f5dfb7}
+p{color:#c5c8ce;line-height:1.55;font-size:14px}
+.primary{border:0;border-radius:13px;padding:14px 22px;background:linear-gradient(135deg,#e8bd70,#a97938);color:#21180d;font-weight:800;font-size:15px;margin-top:12px;width:100%}
+.secondary{border:1px solid var(--line);border-radius:13px;padding:12px;background:#ffffff0b;color:#eee;width:100%;margin-top:9px}
+.hidden{display:none!important}
+#dialogText{font-size:15px;color:#e6e0d5;line-height:1.55;margin:14px 0}
+.symbols{display:flex;justify-content:center;gap:10px;margin:18px 0}
+.symbol{font-size:26px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:#090e17}
+#codeInput{width:150px;text-align:center;font-size:25px;letter-spacing:8px;padding:10px;border-radius:10px;border:1px solid var(--line);background:#080d15;color:#fff}
+#toast{position:fixed;z-index:8;left:50%;bottom:180px;transform:translateX(-50%);background:#101722ed;border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
+@media(min-width:800px){#stickArea{width:150px;height:150px;left:30px;bottom:28px}#lookArea{width:60%}#objective{top:72px}}
 </style>
 </head>
 <body>
-<div id="menu">
- <div class="card">
-  <div style="font-size:42px;margin-bottom:10px">𓂀</div>
-  <h1>ЗАГАДКА<br>ДРЕВНЕГО ХРАМА</h1>
-  <p class="sub">Исследуй забытый храм, найди подсказку и открой древнюю дверь. Управление адаптировано для телефона.</p>
-  <button id="start">НАЧАТЬ ИГРУ</button>
-  <button class="secondary" id="how">КАК ИГРАТЬ</button>
-  <p class="small">Мобильная 3D-головоломка · демоверсия</p>
- </div>
-</div>
+<div id="game"></div><div id="vignette"></div>
 <div id="hud">
- <div class="pill" id="level">Уровень 1 · Зал испытаний</div>
- <div class="pill" id="hint">Найди подсказку на стене</div>
+ <div class="top">
+  <div class="pill">ГЛАВА <b id="levelLabel">1 / 3</b></div>
+  <div class="pill">ОСКОЛКИ <b id="shardLabel">0 / 3</b></div>
+ </div>
+ <div class="pill" id="objective">Найди три древних символа</div>
+ <div id="crosshair"></div><div id="hint">Нажми «Действие»</div>
 </div>
-<div id="message"></div>
-<div id="controls">
- <div id="stick"><div id="knob"></div></div>
+<div id="controls" class="hidden">
+ <div id="stickArea"><div id="stick"></div></div>
+ <div id="lookArea"></div>
  <div id="actions">
-  <button id="interact">ВЗАИМОДЕЙСТВИЕ</button>
-  <button id="look">ОБЗОР: ВОДИ ПАЛЬЦЕМ</button>
+  <button class="action" id="interact">ДЕЙСТВИЕ</button>
+  <button class="action" id="jump">ПРЫЖОК</button>
  </div>
 </div>
-<div id="puzzle">
- <div class="card">
-  <h2 style="color:var(--gold);margin-top:0">Древний замок</h2>
-  <p class="sub">На стене написано: «Порядок звёзд хранит число». Введи код из трёх цифр.</p>
-  <input id="code" inputmode="numeric" maxlength="3" placeholder="•••">
-  <button id="check" style="width:100%">ОТКРЫТЬ ДВЕРЬ</button>
-  <button class="secondary" id="closePuzzle" style="width:100%;margin-top:9px">НАЗАД</button>
-  <p class="small">Подсказка: осмотри три символа в комнате.</p>
+<div id="toast"></div>
+<div id="panel">
+ <div class="window" id="startWindow">
+  <div class="logo">СТУДИЯ • ИГРА-ПРИКЛЮЧЕНИЕ</div>
+  <h1>ГОЛОВОЛОМКА</h1>
+  <p>Тайна древнего храма</p>
+  <p>Ты оказался в заброшенном храме. Исследуй комнаты, находи символы и решай загадки, чтобы открыть путь наружу.</p>
+  <p><b>Управление:</b> левый круг — движение, правая часть экрана — обзор, кнопка «Действие» — взаимодействие.</p>
+  <button class="primary" id="startBtn">НАЧАТЬ ИГРУ</button>
+  <button class="secondary" id="continueBtn">Продолжить</button>
  </div>
-</div>
-<div id="win">
- <div class="card">
-  <div style="font-size:44px">✦</div>
-  <h1>ТАЙНА РАСКРЫТА!</h1>
-  <p class="sub">Ты разгадал код и открыл древнюю дверь. Это конец первой демоверсии.</p>
-  <button id="again" style="width:100%">ИГРАТЬ СНОВА</button>
+ <div class="window hidden" id="puzzleWindow">
+  <div class="logo">ДРЕВНИЙ МЕХАНИЗМ</div><h1 id="puzzleTitle">Загадка</h1>
+  <div id="dialogText"></div>
+  <div id="puzzleBody"></div>
+  <button class="primary" id="submitPuzzle">ПРОВЕРИТЬ</button>
+  <button class="secondary" id="closePuzzle">Назад в комнату</button>
+ </div>
+ <div class="window hidden" id="endWindow">
+  <div class="logo">ИСТОРИЯ ЗАВЕРШЕНА</div><h1>ТЫ НАШЁЛ ВЫХОД!</h1>
+  <p>Все три комнаты храма пройдены. Ты собрал осколки, разгадал тайны и открыл древние ворота.</p>
+  <p><b>Спасибо за игру!</b></p>
+  <button class="primary" id="restartBtn">ИГРАТЬ СНОВА</button>
  </div>
 </div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-const menu=document.querySelector('#menu'),hud=document.querySelector('#hud'),controls=document.querySelector('#controls'),message=document.querySelector('#message'),puzzle=document.querySelector('#puzzle'),win=document.querySelector('#win');
-let scene,camera,renderer,player,door,started=false,doorOpen=false,lookPointer=null,lastX=0,lastY=0,yaw=0,pitch=0;
-const keys={x:0,y:0}; let symbols=[],hintSeen=false;
-function say(t){message.textContent=t;message.style.display='block';clearTimeout(say.timer);say.timer=setTimeout(()=>message.style.display='none',2600)}
-function mat(color,rough=.8,emissive=0){return new THREE.MeshStandardMaterial({color,roughness:rough,emissive,emissiveIntensity:.5})}
-function box(w,h,d,x,y,z,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);scene.add(o);return o}
+
+const $=id=>document.getElementById(id);
+const panel=$('panel'), startWindow=$('startWindow'), puzzleWindow=$('puzzleWindow'), endWindow=$('endWindow');
+let scene,camera,renderer,clock,player,level=1,shards=0,items=[],walls=[],door=null,near=null,move={x:0,y:0},yaw=0,pitch=0,velY=0,onGround=true,playing=false,puzzleType='',lookTouch=null;
+const saved=JSON.parse(localStorage.getItem('templePuzzleSave')||'{}');
+const materials={stone:new THREE.MeshStandardMaterial({color:0x77766c,roughness:.94}),dark:new THREE.MeshStandardMaterial({color:0x343a3c,roughness:.9}),gold:new THREE.MeshStandardMaterial({color:0xc99a50,metalness:.65,roughness:.32}),glow:new THREE.MeshStandardMaterial({color:0x8bd4d1,emissive:0x247f83,emissiveIntensity:1.8}),floor:new THREE.MeshStandardMaterial({color:0x4d4a42,roughness:1}),wood:new THREE.MeshStandardMaterial({color:0x493222,roughness:.9})};
+function box(x,y,z,w,h,d,mat=materials.stone){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);scene.add(m);return m}
+function light(x,y,z,color,intensity,distance){const l=new THREE.PointLight(color,intensity,distance);l.position.set(x,y,z);scene.add(l)}
 function init(){
- scene=new THREE.Scene();scene.background=new THREE.Color(0x111522);scene.fog=new THREE.Fog(0x111522,10,28);
- camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,100);camera.position.set(0,1.65,5);
- renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.appendChild(renderer.domElement);
- scene.add(new THREE.HemisphereLight(0x9ca9c7,0x30251c,1.5));
- const light=new THREE.PointLight(0xffc477,38,18);light.position.set(0,4,0);light.castShadow=true;scene.add(light);
- const stone=mat(0x686052),floor=mat(0x393b43),dark=mat(0x292a34),gold=mat(0xd7a64f,.45,0x68410a);
- box(12,.4,12,0,-.25,0,floor);
- box(12,5,.4,0,2.3,-6,stone);box(12,5,.4,0,2.3,6,stone);
- box(.4,5,12,-6,2.3,0,stone);box(.4,5,12,6,2.3,0,stone);
- // ceiling beams and pillars
- for(let x of [-4.5,4.5])for(let z of [-4.5,4.5])box(.55,4.5,.55,x,2,z,dark);
- for(let z of [-2,0,2]){box(1.1,.16,.16,-5.72,3.5,z,gold);box(1.1,.16,.16,5.72,3.5,z,gold)}
- // far door
- door=box(2.2,3,.3,0,1.5,-5.72,dark);door.material=mat(0x27212b);
- const frame=mat(0xb28a4b);box(2.6,.2,.5,0,3.05,-5.55,frame);box(.2,3,.5,-1.2,1.5,-5.55,frame);box(.2,3,.5,1.2,1.5,-5.55,frame);
- // rune wall clue and three floor symbols
- const runeMat=mat(0xe4b95e,.35,0x9c6b20);
- const wallText=box(2.1,1.1,.08,0,2.5,-5.73,runeMat);wallText.rotation.z=0;
- const labels=['Ⅰ','Ⅱ','Ⅲ'];
- const positions=[[-3,0,-2],[0,0,-2],[3,0,-2]];
- positions.forEach((p,i)=>{let s=new THREE.Mesh(new THREE.CylinderGeometry(.58,.58,.12,6),mat([0xc99c4d,0x6b9aa4,0x9e79b5][i],.5,0x302010));s.position.set(...p);scene.add(s);symbols.push(s);const ring=new THREE.Mesh(new THREE.TorusGeometry(.42,.045,8,32),gold);ring.rotation.x=Math.PI/2;ring.position.set(p[0],.12,p[2]);scene.add(ring)});
- // torch stands
- for(let x of [-4.8,4.8]){box(.25,1,.25,x,.5,-1,dark);const flame=new THREE.PointLight(0xff8a32,7,6);flame.position.set(x,1.5,-1);scene.add(flame);const f=new THREE.Mesh(new THREE.SphereGeometry(.12,12,12),new THREE.MeshBasicMaterial({color:0xffa044}));f.position.set(x,1.55,-1);scene.add(f)}
- player=new THREE.Group();scene.add(player);
- window.addEventListener('resize',resize);
- renderer.domElement.addEventListener('pointerdown',e=>{if(!started||puzzle.style.display==='flex')return;lookPointer=e.pointerId;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});
- renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;yaw-=dx*.004;pitch=Math.max(-.65,Math.min(.65,pitch-dy*.003));});
- renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerId===lookPointer)lookPointer=null});
- animate();
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x101923);scene.fog=new THREE.Fog(0x101923,8,27);
+ camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,100);camera.rotation.order='YXZ';
+ renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;$('game').appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight(0x9db8d0,0x34251a,1.25));
+ const sun=new THREE.DirectionalLight(0xffd69b,2);sun.position.set(-4,9,5);sun.castShadow=true;scene.add(sun);
+ clock=new THREE.Clock();window.addEventListener('resize',resize);buildLevel(1);animate();
+}
+function clearLevel(){for(const o of [...scene.children])if(o.userData.levelObject)scene.remove(o);items=[];walls=[];door=null}
+function addLevelObject(o){o.userData.levelObject=true;scene.add(o);return o}
+function buildLevel(n){
+ clearLevel();level=n;shards=n-1;$('levelLabel').textContent=n+' / 3';$('shardLabel').textContent=shards+' / 3';
+ $('objective').textContent=n===1?'Найди три светящихся символа':n===2?'Реши загадку древнего механизма':'Открой главные ворота храма';
+ // floor and ceiling
+ addLevelObject(box(0,-.25,0,15,.5,19,materials.floor));
+ addLevelObject(box(0,4.2,0,15,.4,19,materials.dark));
+ // outer walls with front entrance gap
+ addLevelObject(box(-7.5,2,0,.5,4,19));addLevelObject(box(7.5,2,0,.5,4,19));
+ addLevelObject(box(0,2,-9.5,15,4,.5));
+ addLevelObject(box(-4.3,2,9.5,6.4,4,.5));addLevelObject(box(4.3,2,9.5,6.4,4,.5));
+ // pillars
+ for(let z=-6;z<=6;z+=4)for(let x of [-5.5,5.5]){addLevelObject(box(x,1.8,z,.75,3.6,.75,materials.dark));addLevelObject(box(x,3.7,z,1.05,.25,1.05,materials.gold))}
+ // wall reliefs and torches
+ for(let x of [-6.9,6.9])for(let z of [-6,0,6]){const t=addLevelObject(new THREE.Group());t.position.set(x,2,z);const flame=new THREE.Mesh(new THREE.SphereGeometry(.13,12,10),materials.glow);flame.position.y=.35;t.add(flame);const l=new THREE.PointLight(0x69c9c2,1.3,6);l.position.y=.4;t.add(l);scene.add(t)}
+ // decorative floor tiles
+ for(let x=-6;x<=6;x+=2)for(let z=-8;z<=8;z+=2){const tile=addLevelObject(box(x,.012,z,1.85,.025,1.85,new THREE.MeshStandardMaterial({color:((x+z)%4===0)?0x5a574d:0x49483f,roughness:1})));tile.receiveShadow=true}
+ player=new THREE.Vector3(0,1.65,7.2);yaw=Math.PI;pitch=0;
+ if(n===1){
+  for(let i=0;i<3;i++){const x=[-4,0,4][i],z=[-3,-7,-3][i];const g=new THREE.Group();g.position.set(x,1.35,z);const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.42),materials.glow);g.add(gem);const ring=new THREE.Mesh(new THREE.TorusGeometry(.65,.035,8,32),materials.gold);ring.rotation.x=Math.PI/2;g.add(ring);addLevelObject(g);items.push({obj:g,type:'shard',id:i})}
+  door=addLevelObject(box(0,2,9.05,2.5,4,.35,materials.gold));
+ }else if(n===2){
+  // central pedestal with puzzle tablet
+  addLevelObject(box(0,.45,-1,2.5,.9,2.5,materials.dark));addLevelObject(box(0,1,-1,2.1,.18,2.1,materials.gold));
+  const orb=addLevelObject(new THREE.Mesh(new THREE.IcosahedronGeometry(.55,1),materials.glow));orb.position.set(0,2,-1);
+  items.push({obj:orb,type:'sequence'});
+  for(let i=0;i<4;i++){const p=addLevelObject(box(-4.5+i*3,1,-6,1.1,2,1.1,materials.dark));p.position.y=1;const s=addLevelObject(new THREE.Mesh(new THREE.BoxGeometry(.45,.45,.1),materials.gold));s.position.set(-4.5+i*3,2.1,-6);items.push({obj:s,type:'rune',id:i})}
+  door=addLevelObject(box(0,2,9.05,2.5,4,.35,materials.gold));
+ }else{
+  addLevelObject(box(0,.5,-3,4,1,2,materials.dark));
+  const gate=addLevelObject(box(0,2,9.05,5,4,.5,materials.gold));door=gate;
+  for(let i=0;i<5;i++){const c=addLevelObject(new THREE.Mesh(new THREE.TorusGeometry(.55,.07,10,32),materials.gold));c.position.set(-4+i*2,2,-5);c.rotation.x=Math.PI/2;items.push({obj:c,type:'finalRune',id:i})}
+ }
 }
 function resize(){if(!camera)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
-function animate(){requestAnimationFrame(animate);if(started){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const move=forward.multiplyScalar(keys.y*.075).add(right.multiplyScalar(keys.x*.075));camera.position.add(move);camera.position.x=THREE.MathUtils.clamp(camera.position.x,-5.25,5.25);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-5.25,5.25);camera.position.y=1.65;camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0)}renderer.render(scene,camera)}
-function start(){if(!scene)init();started=true;menu.style.display='none';hud.style.display='flex';controls.style.display='flex';say('Осмотри комнату. Подсказка находится на дальней стене.');}
-document.querySelector('#start').onclick=start;
-document.querySelector('#how').onclick=()=>alert('Двигайся джойстиком слева. Води пальцем по экрану, чтобы осматриваться. Подойди к символам и нажми «Взаимодействие». Затем введи код у двери.');
-document.querySelector('#interact').onclick=()=>{
- const p=camera.position;
- const dist=(x,z)=>Math.hypot(p.x-x,p.z-z);
- if(dist(0,-5.5)<2.7){puzzle.style.display='flex';return}
- for(let i=0;i<3;i++){const [x,,z]=[[-3,0,-2],[0,0,-2],[3,0,-2]][i];if(dist(x,z)<1.6){hintSeen=true;const clues=['Первый знак — 4','Второй знак — 2','Третий знак — 7'];say(clues[i]);document.querySelector('#hint').textContent='Подсказки: '+(i+1)+'/3';return}}
- say('Здесь ничего нет. Подойди ближе к символу или двери.');
-};
-document.querySelector('#check').onclick=()=>{if(document.querySelector('#code').value==='427'){puzzle.style.display='none';win.style.display='flex';}else say('Неверный код. Ищи символы в комнате!')};
-document.querySelector('#closePuzzle').onclick=()=>puzzle.style.display='none';
-document.querySelector('#again').onclick=()=>location.reload();
-const stick=document.querySelector('#stick'),knob=document.querySelector('#knob');let stickId=null;
-stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;stick.setPointerCapture(e.pointerId);moveStick(e)});
-stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)moveStick(e)});
-function moveStick(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=37,l=Math.hypot(dx,dy);if(l>max){dx=dx/l*max;dy=dy/l*max}knob.style.transform=`translate(${dx}px,${dy}px)`;keys.x=dx/max;keys.y=-dy/max}
-function resetStick(){stickId=null;keys.x=keys.y=0;knob.style.transform='translate(0,0)'}
-stick.addEventListener('pointerup',resetStick);stick.addEventListener('pointercancel',resetStick);
-document.querySelector('#look').onclick=()=>say('Води пальцем по свободной части экрана, чтобы осматриваться.');
-init();
+function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;setTimeout(()=>$('toast').style.opacity=0,1700)}
+function save(){localStorage.setItem('templePuzzleSave',JSON.stringify({level,shards}))}
+function showPanel(which){panel.classList.remove('hidden');startWindow.classList.add('hidden');puzzleWindow.classList.add('hidden');endWindow.classList.add('hidden');$(which).classList.remove('hidden');$('controls').classList.add('hidden')}
+function start(){panel.classList.add('hidden');$('controls').classList.remove('hidden');playing=true;clock.getDelta()}
+function openPuzzle(type){playing=false;puzzleType=type;showPanel('puzzleWindow');$('puzzleBody').innerHTML='';$('submitPuzzle').classList.remove('hidden');
+ if(type==='sequence'){$('puzzleTitle').textContent='Последовательность';$('dialogText').textContent='На камне высечена подсказка: «Сначала солнце, затем луна, потом звезда». Выбери символы в правильном порядке.';$('puzzleBody').innerHTML='<div class="symbols"><button class="symbol" data-v="☀">☀</button><button class="symbol" data-v="☾">☾</button><button class="symbol" data-v="★">★</button></div><div id="chosen">Выбрано: —</div>';let chosen=[];document.querySelectorAll('.symbol').forEach(b=>b.onclick=()=>{chosen.push(b.dataset.v);$('chosen').textContent='Выбрано: '+chosen.join(' ')});$('submitPuzzle').onclick=()=>{if(chosen.join('')==='☀☾★'){completeLevel()}else{chosen=[];$('chosen').textContent='Неверно. Попробуй ещё раз.'}}}
+ else if(type==='gate'){$('puzzleTitle').textContent='Код древних ворот';$('dialogText').textContent='На стене написано: «Ответ — количество сторон треугольника, умноженное на 142». Введи трёхзначный код.';$('puzzleBody').innerHTML='<input id="codeInput" maxlength="3" inputmode="numeric" placeholder="•••">';$('submitPuzzle').onclick=()=>{if($('codeInput').value==='426')completeLevel();else toast('Код не подходит')}}
+ else if(type==='shard'){$('puzzleTitle').textContent='Светящийся осколок';$('dialogText').textContent='Ты нашёл древний осколок. Он нужен, чтобы открыть выход из храма.';$('puzzleBody').innerHTML='<div class="symbols"><span class="symbol">✧</span></div>';$('submitPuzzle').onclick=()=>{shards++;$('shardLabel').textContent=shards+' / 3';items=items.filter(i=>i!==near);if(near?.obj)near.obj.visible=false;toast('Осколок добавлен!');save();closePuzzle()}}
+ else if(type==='final'){$('puzzleTitle').textContent='Последняя печать';$('dialogText').textContent='Пять символов зажглись. Чтобы открыть выход, введи код из предыдущих комнат: 426.';$('puzzleBody').innerHTML='<input id="codeInput" maxlength="3" inputmode="numeric" placeholder="•••">';$('submitPuzzle').onclick=()=>{if($('codeInput').value==='426'){showPanel('endWindow');localStorage.removeItem('templePuzzleSave')}else toast('Попробуй ещё раз')}}
+}
+function closePuzzle(){panel.classList.add('hidden');$('controls').classList.remove('hidden');playing=true}
+function completeLevel(){panel.classList.add('hidden');if(level<3){buildLevel(level+1);toast('Комната '+level+' пройдена!');save();$('controls').classList.remove('hidden');playing=true}else{showPanel('endWindow')}}
+function interact(){if(!playing)return;if(near){if(near.type==='shard')openPuzzle('shard');else if(near.type==='sequence')openPuzzle('sequence');else if(near.type==='rune'){near.obj.material=materials.glow;near.type='used';toast('Руна активирована')}else if(near.type==='finalRune'){near.obj.material=materials.glow;near.type='used';toast('Печать активирована')}return}
+ const dz=Math.abs(player.z-9);if(dz<2.1&&Math.abs(player.x)<2.4){if(level===1){if(shards>=3)completeLevel();else toast('Сначала найди все три осколка')}else if(level===2)openPuzzle('gate');else openPuzzle('final')}
+}
+function updateNear(){near=null;let best=2.2;for(const it of items){if(!it.obj.visible||it.type==='used')continue;const p=it.obj.position;const d=Math.hypot(p.x-player.x,p.z-player.z);if(d<best){best=d;near=it}}const gateD=Math.hypot(player.x,player.z-9);$('hint').style.opacity=(near||gateD<2.3)?1:0}
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(playing){const forward=move.y,side=move.x;const speed=3.3;const dx=(Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;const dz=(Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;let nx=THREE.MathUtils.clamp(player.x+dx,-6.6,6.6),nz=THREE.MathUtils.clamp(player.z+dz,-8.5,8.4);if(Math.abs(nx)<.9&&Math.abs(nz+1)<1.1&&level===2){/* pedestal area */}player.x=nx;player.z=nz;velY-=9.8*dt;player.y+=velY*dt;if(player.y<1.65){player.y=1.65;velY=0;onGround=true}camera.position.copy(player);camera.rotation.set(pitch,yaw,0);updateNear();for(const it of items)if(it.type==='shard'||it.type==='sequence'){it.obj.rotation.y+=dt*.5;it.obj.position.y=it.type==='shard'?1.35+Math.sin(performance.now()*.002+it.id)*.12:2+Math.sin(performance.now()*.002)*.1}}
+ renderer.render(scene,camera)}
+function bindControls(){
+ const area=$('stickArea'),stick=$('stick');let active=false,cx=0,cy=0;
+ area.addEventListener('pointerdown',e=>{active=true;area.setPointerCapture(e.pointerId);const r=area.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;moveStick(e)});
+ area.addEventListener('pointermove',e=>{if(active)moveStick(e)});['pointerup','pointercancel'].forEach(ev=>area.addEventListener(ev,()=>{active=false;move={x:0,y:0};stick.style.transform='translate(-50%,-50%)'}));
+ function moveStick(e){let dx=e.clientX-cx,dy=e.clientY-cy,l=Math.hypot(dx,dy),max=43;if(l>max){dx=dx/l*max;dy=dy/l*max}move.x=dx/max;move.y=-dy/max;stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}
+ const look=$('lookArea');look.addEventListener('pointerdown',e=>{lookTouch={x:e.clientX,y:e.clientY};look.setPointerCapture(e.pointerId)});look.addEventListener('pointermove',e=>{if(!lookTouch||!playing)return;const dx=e.clientX-lookTouch.x,dy=e.clientY-lookTouch.y;yaw-=dx*.005;pitch=THREE.MathUtils.clamp(pitch-dy*.004,-1.15,1.15);lookTouch={x:e.clientX,y:e.clientY}});['pointerup','pointercancel'].forEach(ev=>look.addEventListener(ev,()=>lookTouch=null));
+ $('interact').onclick=interact;$('jump').onclick=()=>{if(playing&&onGround){velY=4.1;onGround=false}};
+}
+$('startBtn').onclick=()=>{if(!scene)init();start()};$('continueBtn').onclick=()=>{if(saved.level){if(!scene)init();buildLevel(saved.level);shards=saved.shards||0;$('shardLabel').textContent=shards+' / 3'}else if(!scene)init();start()};
+$('closePuzzle').onclick=closePuzzle;$('restartBtn').onclick=()=>{localStorage.removeItem('templePuzzleSave');buildLevel(1);shards=0;showPanel('startWindow')};
+bindControls();
 </script>
 </body>
 </html>
