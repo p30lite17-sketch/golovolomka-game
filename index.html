@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#10131b">
 <title>Головоломка — Тайна древнего храма</title>
+<link rel="icon" type="image/png" href="assets/app-icon.png">
+<link rel="apple-touch-icon" href="assets/app-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Головоломка">
 <style>
 :root{--gold:#e8bd70;--glass:rgba(12,16,25,.82);--line:rgba(232,189,112,.35)}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090c12;color:#f4eee2;font-family:Arial,sans-serif;touch-action:none}
@@ -31,6 +35,7 @@ select{background:#101722;color:#fff;border:1px solid var(--line);border-radius:
 #panel{position:fixed;z-index:10;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#080b12d9,#080b12f2);padding:20px}
 .window{width:min(92vw,480px);max-height:90vh;overflow:auto;background:linear-gradient(145deg,#202631,#10151e);border:1px solid var(--line);border-radius:22px;padding:26px 22px;text-align:center;box-shadow:0 20px 70px #000b}
 .logo{font-size:12px;letter-spacing:4px;color:var(--gold);margin-bottom:12px}
+.brandLogo{display:block;width:100%;max-width:420px;height:auto;margin:0 auto 10px;border-radius:14px;border:1px solid var(--line);box-shadow:0 8px 28px #0008}
 h1{font-size:clamp(27px,7vw,42px);margin:8px 0 12px;color:#f5dfb7}
 p{color:#c5c8ce;line-height:1.55;font-size:14px}
 .primary{border:0;border-radius:13px;padding:14px 22px;background:linear-gradient(135deg,#e8bd70,#a97938);color:#21180d;font-weight:800;font-size:15px;margin-top:12px;width:100%}
@@ -66,9 +71,7 @@ p{color:#c5c8ce;line-height:1.55;font-size:14px}
 <div id="toast"></div>
 <div id="panel">
  <div class="window" id="startWindow">
-  <div class="logo">СТУДИЯ • ИГРА-ПРИКЛЮЧЕНИЕ</div>
-  <h1>ГОЛОВОЛОМКА</h1>
-  <p>Тайна древнего храма</p>
+  <img class="brandLogo" src="assets/logo-title.jpg" alt="Головоломка — Тайна древнего храма">
   <p>Ты оказался в заброшенном храме. Исследуй комнаты, находи символы и решай загадки, чтобы открыть путь наружу.</p>
   <p><b>Управление:</b> левый круг — движение, правая часть экрана — обзор, кнопка «Действие» — взаимодействие.</p>
   <button class="primary" id="startBtn">НАЧАТЬ ИГРУ</button>
