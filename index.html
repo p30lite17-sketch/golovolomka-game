@@ -22,6 +22,10 @@
 #stick{position:absolute;left:50%;top:50%;width:54px;height:54px;transform:translate(-50%,-50%);border-radius:50%;background:#e8bd7070;border:2px solid #f5d59c;box-shadow:0 3px 15px #0008}
 #lookArea{position:absolute;right:0;top:20%;width:55%;height:65%;pointer-events:auto;touch-action:none}
 #actions{position:absolute;right:18px;bottom:24px;display:flex;flex-direction:column;gap:10px;pointer-events:auto}
+#pauseBtn{position:absolute;right:14px;top:112px;pointer-events:auto;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:#121925dd;color:#f7e5c2;font-size:17px}
+.settingRow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0;color:#eee;font-size:14px}
+.settingRow input{accent-color:#e8bd70;width:22px;height:22px}
+select{background:#101722;color:#fff;border:1px solid var(--line);border-radius:8px;padding:8px}
 .action{width:62px;height:62px;border-radius:50%;border:1px solid var(--line);background:#121925dd;color:#f7e5c2;font-size:11px;font-weight:bold;box-shadow:0 5px 18px #0008}
 .action:active{background:#8c6939}
 #panel{position:fixed;z-index:10;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#080b12d9,#080b12f2);padding:20px}
@@ -53,6 +57,7 @@ p{color:#c5c8ce;line-height:1.55;font-size:14px}
 <div id="controls" class="hidden">
  <div id="stickArea"><div id="stick"></div></div>
  <div id="lookArea"></div>
+ <button id="pauseBtn" aria-label="Пауза">Ⅱ</button>
  <div id="actions">
   <button class="action" id="interact">ДЕЙСТВИЕ</button>
   <button class="action" id="jump">ПРЫЖОК</button>
@@ -76,6 +81,14 @@ p{color:#c5c8ce;line-height:1.55;font-size:14px}
   <button class="primary" id="submitPuzzle">ПРОВЕРИТЬ</button>
   <button class="secondary" id="closePuzzle">Назад в комнату</button>
  </div>
+ <div class="window hidden" id="pauseWindow">
+  <div class="logo">ПАУЗА</div><h1>ПЕРЕРЫВ</h1>
+  <p>Игра приостановлена.</p>
+  <div class="settingRow"><label for="soundToggle">Звуковые эффекты</label><input id="soundToggle" type="checkbox" checked></div>
+  <div class="settingRow"><label for="lookSpeed">Чувствительность обзора</label><select id="lookSpeed"><option value="0.0035">Низкая</option><option value="0.005" selected>Средняя</option><option value="0.007">Высокая</option></select></div>
+  <button class="primary" id="resumeBtn">ПРОДОЛЖИТЬ</button>
+  <button class="secondary" id="restartFromPause">НАЧАТЬ ЗАНОВО</button>
+ </div>
  <div class="window hidden" id="endWindow">
   <div class="logo">ИСТОРИЯ ЗАВЕРШЕНА</div><h1>ТЫ НАШЁЛ ВЫХОД!</h1>
   <p>Все три комнаты храма пройдены. Ты собрал осколки, разгадал тайны и открыл древние ворота.</p>
@@ -88,11 +101,16 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 const $=id=>document.getElementById(id);
 const panel=$('panel'), startWindow=$('startWindow'), puzzleWindow=$('puzzleWindow'), endWindow=$('endWindow');
-let scene,camera,renderer,clock,player,level=1,shards=0,items=[],walls=[],door=null,near=null,move={x:0,y:0},yaw=0,pitch=0,velY=0,onGround=true,playing=false,puzzleType='',lookTouch=null;
+let scene,camera,renderer,clock,player,level=1,shards=0,items=[],walls=[],door=null,near=null,move={x:0,y:0},yaw=0,pitch=0,velY=0,onGround=true,playing=false,puzzleType='',lookTouch=null,audioCtx=null,soundEnabled=true,lookSensitivity=.005;
 const saved=JSON.parse(localStorage.getItem('templePuzzleSave')||'{}');
 const materials={stone:new THREE.MeshStandardMaterial({color:0x77766c,roughness:.94}),dark:new THREE.MeshStandardMaterial({color:0x343a3c,roughness:.9}),gold:new THREE.MeshStandardMaterial({color:0xc99a50,metalness:.65,roughness:.32}),glow:new THREE.MeshStandardMaterial({color:0x8bd4d1,emissive:0x247f83,emissiveIntensity:1.8}),floor:new THREE.MeshStandardMaterial({color:0x4d4a42,roughness:1}),wood:new THREE.MeshStandardMaterial({color:0x493222,roughness:.9})};
 function box(x,y,z,w,h,d,mat=materials.stone){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);scene.add(m);return m}
 function light(x,y,z,color,intensity,distance){const l=new THREE.PointLight(color,intensity,distance);l.position.set(x,y,z);scene.add(l)}
+function beep(freq=440,duration=.09,type='sine',gain=.035){
+ if(!soundEnabled)return;
+ try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(gain,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}
+}
+function sfx(name){if(name==='collect'){beep(660,.1);setTimeout(()=>beep(880,.13),90)}else if(name==='wrong'){beep(180,.2,'sawtooth',.025)}else if(name==='open'){beep(392,.14);setTimeout(()=>beep(523,.16),130);setTimeout(()=>beep(784,.25),280)}else{beep(440,.07)}}
 function init(){
  scene=new THREE.Scene();scene.background=new THREE.Color(0x101923);scene.fog=new THREE.Fog(0x101923,8,27);
  camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,100);camera.rotation.order='YXZ';
@@ -105,7 +123,7 @@ function clearLevel(){for(const o of [...scene.children])if(o.userData.levelObje
 function addLevelObject(o){o.userData.levelObject=true;scene.add(o);return o}
 function buildLevel(n){
  clearLevel();level=n;shards=n-1;$('levelLabel').textContent=n+' / 3';$('shardLabel').textContent=shards+' / 3';
- $('objective').textContent=n===1?'Найди три светящихся символа':n===2?'Реши загадку древнего механизма':'Открой главные ворота храма';
+ $('objective').textContent=n===1?'Найди три светящихся символа':n===2?'Активируй четыре руны и реши загадку':'Активируй пять печатей и открой ворота';
  // floor and ceiling
  addLevelObject(box(0,-.25,0,15,.5,19,materials.floor));
  addLevelObject(box(0,4.2,0,15,.4,19,materials.dark));
@@ -140,17 +158,23 @@ function resize(){if(!camera)return;camera.aspect=innerWidth/innerHeight;camera.
 function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;setTimeout(()=>$('toast').style.opacity=0,1700)}
 function save(){localStorage.setItem('templePuzzleSave',JSON.stringify({level,shards}))}
 function showPanel(which){panel.classList.remove('hidden');startWindow.classList.add('hidden');puzzleWindow.classList.add('hidden');endWindow.classList.add('hidden');$(which).classList.remove('hidden');$('controls').classList.add('hidden')}
-function start(){panel.classList.add('hidden');$('controls').classList.remove('hidden');playing=true;clock.getDelta()}
+function start(){panel.classList.add('hidden');$('controls').classList.remove('hidden');playing=true;clock.getDelta();beep(520,.08)}
+function pauseGame(){if(!playing)return;playing=false;showPanel('pauseWindow')}
+function resumeGame(){panel.classList.add('hidden');$('controls').classList.remove('hidden');playing=true;clock.getDelta()}
 function openPuzzle(type){playing=false;puzzleType=type;showPanel('puzzleWindow');$('puzzleBody').innerHTML='';$('submitPuzzle').classList.remove('hidden');
- if(type==='sequence'){$('puzzleTitle').textContent='Последовательность';$('dialogText').textContent='На камне высечена подсказка: «Сначала солнце, затем луна, потом звезда». Выбери символы в правильном порядке.';$('puzzleBody').innerHTML='<div class="symbols"><button class="symbol" data-v="☀">☀</button><button class="symbol" data-v="☾">☾</button><button class="symbol" data-v="★">★</button></div><div id="chosen">Выбрано: —</div>';let chosen=[];document.querySelectorAll('.symbol').forEach(b=>b.onclick=()=>{chosen.push(b.dataset.v);$('chosen').textContent='Выбрано: '+chosen.join(' ')});$('submitPuzzle').onclick=()=>{if(chosen.join('')==='☀☾★'){completeLevel()}else{chosen=[];$('chosen').textContent='Неверно. Попробуй ещё раз.'}}}
- else if(type==='gate'){$('puzzleTitle').textContent='Код древних ворот';$('dialogText').textContent='На стене написано: «Ответ — количество сторон треугольника, умноженное на 142». Введи трёхзначный код.';$('puzzleBody').innerHTML='<input id="codeInput" maxlength="3" inputmode="numeric" placeholder="•••">';$('submitPuzzle').onclick=()=>{if($('codeInput').value==='426')completeLevel();else toast('Код не подходит')}}
- else if(type==='shard'){$('puzzleTitle').textContent='Светящийся осколок';$('dialogText').textContent='Ты нашёл древний осколок. Он нужен, чтобы открыть выход из храма.';$('puzzleBody').innerHTML='<div class="symbols"><span class="symbol">✧</span></div>';$('submitPuzzle').onclick=()=>{shards++;$('shardLabel').textContent=shards+' / 3';items=items.filter(i=>i!==near);if(near?.obj)near.obj.visible=false;toast('Осколок добавлен!');save();closePuzzle()}}
- else if(type==='final'){$('puzzleTitle').textContent='Последняя печать';$('dialogText').textContent='Пять символов зажглись. Чтобы открыть выход, введи код из предыдущих комнат: 426.';$('puzzleBody').innerHTML='<input id="codeInput" maxlength="3" inputmode="numeric" placeholder="•••">';$('submitPuzzle').onclick=()=>{if($('codeInput').value==='426'){showPanel('endWindow');localStorage.removeItem('templePuzzleSave')}else toast('Попробуй ещё раз')}}
+ if(type==='sequence'){$('puzzleTitle').textContent='Последовательность';$('dialogText').textContent='На камне высечена подсказка: «Сначала солнце, затем луна, потом звезда». Выбери символы в правильном порядке.';$('puzzleBody').innerHTML='<div class="symbols"><button class="symbol" data-v="☀">☀</button><button class="symbol" data-v="☾">☾</button><button class="symbol" data-v="★">★</button></div><div id="chosen">Выбрано: —</div>';let chosen=[];document.querySelectorAll('.symbol').forEach(b=>b.onclick=()=>{chosen.push(b.dataset.v);$('chosen').textContent='Выбрано: '+chosen.join(' ')});$('submitPuzzle').onclick=()=>{if(chosen.join('')==='☀☾★'){completeLevel()}else{chosen=[];sfx('wrong');$('chosen').textContent='Неверно. Попробуй ещё раз.'}}}
+ else if(type==='gate'){$('puzzleTitle').textContent='Код древних ворот';$('dialogText').textContent='На стене написано: «Ответ — количество сторон треугольника, умноженное на 142». Введи трёхзначный код.';$('puzzleBody').innerHTML='<input id="codeInput" maxlength="3" inputmode="numeric" placeholder="•••">';$('submitPuzzle').onclick=()=>{if($('codeInput').value==='426')completeLevel();else {sfx('wrong');toast('Код не подходит')}}}
+ else if(type==='shard'){$('puzzleTitle').textContent='Светящийся осколок';$('dialogText').textContent='Ты нашёл древний осколок. Он нужен, чтобы открыть выход из храма.';$('puzzleBody').innerHTML='<div class="symbols"><span class="symbol">✧</span></div>';$('submitPuzzle').onclick=()=>{shards++;$('shardLabel').textContent=shards+' / 3';items=items.filter(i=>i!==near);if(near?.obj)near.obj.visible=false;toast('Осколок добавлен!');sfx('collect');save();closePuzzle()}}
+ else if(type==='final'){$('puzzleTitle').textContent='Последняя печать';$('dialogText').textContent='Пять символов зажглись. Чтобы открыть выход, введи код из предыдущих комнат: 426.';$('puzzleBody').innerHTML='<input id="codeInput" maxlength="3" inputmode="numeric" placeholder="•••">';$('submitPuzzle').onclick=()=>{if($('codeInput').value==='426'){showPanel('endWindow');localStorage.removeItem('templePuzzleSave')}else {sfx('wrong');toast('Попробуй ещё раз')}}}
 }
 function closePuzzle(){panel.classList.add('hidden');$('controls').classList.remove('hidden');playing=true}
-function completeLevel(){panel.classList.add('hidden');if(level<3){buildLevel(level+1);toast('Комната '+level+' пройдена!');save();$('controls').classList.remove('hidden');playing=true}else{showPanel('endWindow')}}
-function interact(){if(!playing)return;if(near){if(near.type==='shard')openPuzzle('shard');else if(near.type==='sequence')openPuzzle('sequence');else if(near.type==='rune'){near.obj.material=materials.glow;near.type='used';toast('Руна активирована')}else if(near.type==='finalRune'){near.obj.material=materials.glow;near.type='used';toast('Печать активирована')}return}
- const dz=Math.abs(player.z-9);if(dz<2.1&&Math.abs(player.x)<2.4){if(level===1){if(shards>=3)completeLevel();else toast('Сначала найди все три осколка')}else if(level===2)openPuzzle('gate');else openPuzzle('final')}
+function completeLevel(){sfx('open');panel.classList.add('hidden');if(level<3){buildLevel(level+1);toast('Комната '+level+' пройдена!');save();$('controls').classList.remove('hidden');playing=true}else{showPanel('endWindow')}}
+function interact(){if(!playing)return;if(near){if(near.type==='shard')openPuzzle('shard');else if(near.type==='sequence')openPuzzle('sequence');else if(near.type==='rune'){near.obj.material=materials.glow;near.type='used';sfx('collect');toast('Руна активирована')}else if(near.type==='finalRune'){near.obj.material=materials.glow;near.type='used';sfx('collect');toast('Печать активирована')}return}
+ const dz=Math.abs(player.z-9);if(dz<2.1&&Math.abs(player.x)<2.4){
+  if(level===1){if(shards>=3)completeLevel();else toast('Сначала найди все три осколка')}
+  else if(level===2){if(items.some(i=>i.type==='rune'))toast('Сначала активируй все четыре руны');else openPuzzle('gate')}
+  else {if(items.some(i=>i.type==='finalRune'))toast('Сначала активируй все пять печатей');else openPuzzle('final')}
+ }
 }
 function updateNear(){near=null;let best=2.2;for(const it of items){if(!it.obj.visible||it.type==='used')continue;const p=it.obj.position;const d=Math.hypot(p.x-player.x,p.z-player.z);if(d<best){best=d;near=it}}const gateD=Math.hypot(player.x,player.z-9);$('hint').style.opacity=(near||gateD<2.3)?1:0}
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(playing){const forward=move.y,side=move.x;const speed=3.3;const dx=(Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;const dz=(Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;let nx=THREE.MathUtils.clamp(player.x+dx,-6.6,6.6),nz=THREE.MathUtils.clamp(player.z+dz,-8.5,8.4);if(Math.abs(nx)<.9&&Math.abs(nz+1)<1.1&&level===2){/* pedestal area */}player.x=nx;player.z=nz;velY-=9.8*dt;player.y+=velY*dt;if(player.y<1.65){player.y=1.65;velY=0;onGround=true}camera.position.copy(player);camera.rotation.set(pitch,yaw,0);updateNear();for(const it of items)if(it.type==='shard'||it.type==='sequence'){it.obj.rotation.y+=dt*.5;it.obj.position.y=it.type==='shard'?1.35+Math.sin(performance.now()*.002+it.id)*.12:2+Math.sin(performance.now()*.002)*.1}}
@@ -160,8 +184,14 @@ function bindControls(){
  area.addEventListener('pointerdown',e=>{active=true;area.setPointerCapture(e.pointerId);const r=area.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;moveStick(e)});
  area.addEventListener('pointermove',e=>{if(active)moveStick(e)});['pointerup','pointercancel'].forEach(ev=>area.addEventListener(ev,()=>{active=false;move={x:0,y:0};stick.style.transform='translate(-50%,-50%)'}));
  function moveStick(e){let dx=e.clientX-cx,dy=e.clientY-cy,l=Math.hypot(dx,dy),max=43;if(l>max){dx=dx/l*max;dy=dy/l*max}move.x=dx/max;move.y=-dy/max;stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}
- const look=$('lookArea');look.addEventListener('pointerdown',e=>{lookTouch={x:e.clientX,y:e.clientY};look.setPointerCapture(e.pointerId)});look.addEventListener('pointermove',e=>{if(!lookTouch||!playing)return;const dx=e.clientX-lookTouch.x,dy=e.clientY-lookTouch.y;yaw-=dx*.005;pitch=THREE.MathUtils.clamp(pitch-dy*.004,-1.15,1.15);lookTouch={x:e.clientX,y:e.clientY}});['pointerup','pointercancel'].forEach(ev=>look.addEventListener(ev,()=>lookTouch=null));
- $('interact').onclick=interact;$('jump').onclick=()=>{if(playing&&onGround){velY=4.1;onGround=false}};
+ const look=$('lookArea');look.addEventListener('pointerdown',e=>{lookTouch={x:e.clientX,y:e.clientY};look.setPointerCapture(e.pointerId)});look.addEventListener('pointermove',e=>{if(!lookTouch||!playing)return;const dx=e.clientX-lookTouch.x,dy=e.clientY-lookTouch.y;yaw-=dx*lookSensitivity;pitch=THREE.MathUtils.clamp(pitch-dy*lookSensitivity*.8,-1.15,1.15);lookTouch={x:e.clientX,y:e.clientY}});['pointerup','pointercancel'].forEach(ev=>look.addEventListener(ev,()=>lookTouch=null));
+ $('interact').onclick=interact;$('jump').onclick=()=>{if(playing&&onGround){velY=4.1;onGround=false;sfx('tap')}};
+ $('pauseBtn').onclick=pauseGame;$('resumeBtn').onclick=resumeGame;
+ $('soundToggle').onchange=e=>{soundEnabled=e.target.checked;if(soundEnabled)sfx('tap')};
+ $('lookSpeed').onchange=e=>{lookSensitivity=Number(e.target.value)};
+ $('restartFromPause').onclick=()=>{localStorage.removeItem('templePuzzleSave');shards=0;buildLevel(1);showPanel('startWindow')};
+ window.addEventListener('keydown',e=>{if(!playing)return;const k=e.key.toLowerCase();if(k==='w'||k==='arrowup')move.y=1;if(k==='s'||k==='arrowdown')move.y=-1;if(k==='a'||k==='arrowleft')move.x=-1;if(k==='d'||k==='arrowright')move.x=1;if(k===' '&&onGround){velY=4.1;onGround=false}if(k==='e'||k==='enter')interact();if(k==='escape')pauseGame()});
+ window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(['w','s','arrowup','arrowdown'].includes(k))move.y=0;if(['a','d','arrowleft','arrowright'].includes(k))move.x=0});
 }
 $('startBtn').onclick=()=>{if(!scene)init();start()};$('continueBtn').onclick=()=>{if(saved.level){if(!scene)init();buildLevel(saved.level);shards=saved.shards||0;$('shardLabel').textContent=shards+' / 3'}else if(!scene)init();start()};
 $('closePuzzle').onclick=closePuzzle;$('restartBtn').onclick=()=>{localStorage.removeItem('templePuzzleSave');buildLevel(1);shards=0;showPanel('startWindow')};
